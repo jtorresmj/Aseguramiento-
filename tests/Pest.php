@@ -12,6 +12,7 @@ ini_set('memory_limit', '1024M');
 | need to change it using the "uses()" function to bind a different classes or traits.
 |
 */
+/* hola esta es una prueba */
 
 uses(Webkul\Admin\Tests\AdminTestCase::class)->in('../packages/Webkul/Admin/tests');
 uses(Webkul\Core\Tests\CoreTestCase::class)->in('../packages/Webkul/Core/tests');
