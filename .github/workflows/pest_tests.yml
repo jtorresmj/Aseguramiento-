@@ -35,6 +35,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: curl, fileinfo, gd, intl, mbstring, openssl, pdo, pdo_mysql, tokenizer, zip
+          coverage: xdebug
           ini-values: error_reporting=E_ALL
           tools: composer:v2
 
@@ -55,5 +56,12 @@ jobs:
       - name: Running Bagisto Installer
         run: php artisan bagisto:install --skip-env-check --skip-admin-creation --skip-github-star
 
-      - name: Running Pest Test
-        run: vendor/bin/pest --colors=always
+      - name: Running Pest Test (with coverage)
+        run: php -d xdebug.mode=coverage vendor/bin/pest --colors=always --coverage-clover=coverage.xml
+
+      - name: Upload coverage artifact (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage
+          path: coverage.xml
