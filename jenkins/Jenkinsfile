@@ -1,13 +1,13 @@
 pipeline {
     agent any
-    
+
     environment {
         // Variables de entorno para las pruebas de API
         BAGISTO_BASE_URL = "${env.BAGISTO_BASE_URL ?: 'http://localhost:8000'}"
         BAGISTO_CUSTOMER_EMAIL = credentials('bagisto-test-email')
         BAGISTO_CUSTOMER_PASSWORD = credentials('bagisto-test-password')
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -15,7 +15,7 @@ pipeline {
                 checkout scm
             }
         }
-        
+
         stage('Preparar Entorno') {
             steps {
                 echo 'Instalando Newman (Postman CLI) y preparando directorios...'
@@ -26,7 +26,7 @@ pipeline {
                 '''
             }
         }
-        
+
         stage('Run API Tests') {
             steps {
                 echo 'Ejecutando pruebas funcionales de API con Newman...'
@@ -36,35 +36,42 @@ pipeline {
                 '''
             }
         }
-        
+
         stage('Prueba de Estrés') {
             steps {
-                echo 'Ejecutando prueba de estrés de la API...'
-                sh '''
-                    newman run postman/Bagisto_API_Collection.postman_collection.json \
-                    -e postman/Bagisto_Environment.postman_environment.json \
-                    --env-var "base_url=${BAGISTO_BASE_URL}" \
-                    --env-var "customer_email=${BAGISTO_CUSTOMER_EMAIL}" \
-                    --env-var "customer_password=${BAGISTO_CUSTOMER_PASSWORD}" \
-                    --iteration-count 100 \
-                    --delay-request 100 \
-                    -r cli,junit,htmlextra \
-                    --reporter-junit-export test-results/stress-test-results.xml \
-                    --reporter-htmlextra-export test-results/stress-test-report.html \
-                    --color on \
-                    --timeout-request 10000
-                '''
+                echo '=== Ejecutando prueba de estrés de la API ==='
+                bat '''
+            if not exist test-results mkdir test-results
+
+            npm list -g newman || npm install -g newman
+            npm list -g newman-reporter-htmlextra || npm install -g newman-reporter-htmlextra
+
+            newman run "postman\\Bagisto_API_Collection.postman_collection.json" ^
+                -e "postman\\Bagisto_Environment.postman_environment.json" ^
+                --env-var "base_url=%BAGISTO_BASE_URL%" ^
+                --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
+                --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
+                --iteration-count 100 ^
+                --delay-request 100 ^
+                -r cli,junit,htmlextra ^
+                --reporter-junit-export "test-results\\stress-test-results.xml" ^
+                --reporter-htmlextra-export "test-results\\stress-test-report.html" ^
+                --color on ^
+                --timeout-request 10000
+
+            echo === Prueba de estrés completada ===
+        '''
             }
         }
     }
-    
+
     post {
         always {
             echo 'Publicando resultados de pruebas...'
-            
+
             // Publicar resultados JUnit (pruebas funcionales y de estrés)
             junit 'test-results/*.xml'
-            
+
             // Publicar reporte HTML de pruebas funcionales
             publishHTML([
                 allowMissing: false,
@@ -75,7 +82,7 @@ pipeline {
                 reportName: 'API Functional Tests',
                 reportTitles: 'Bagisto API Tests'
             ])
-            
+
             // Publicar reporte HTML de pruebas de estrés
             publishHTML([
                 allowMissing: false,
@@ -87,18 +94,18 @@ pipeline {
                 reportTitles: 'Bagisto API Stress Tests'
             ])
         }
-        
+
         success {
             echo '✓ Pipeline completado exitosamente'
             echo '  - Pruebas funcionales: PASADAS'
             echo '  - Pruebas de estrés (100 iteraciones): COMPLETADAS'
-            // Aquí puedes agregar notificaciones (Slack, email, etc.)
+        // Aquí puedes agregar notificaciones (Slack, email, etc.)
         }
-        
+
         failure {
             echo '✗ Pipeline falló'
             echo 'Revisa los reportes HTML para más detalles'
-            // Aquí puedes agregar notificaciones de fallo
+        // Aquí puedes agregar notificaciones de fallo
         }
     }
 }
