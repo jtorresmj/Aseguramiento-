@@ -12,9 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        // Only exclude specific endpoint(s) needed by external clients
+        // API routes are now protected with Sanctum authentication (Bearer tokens)
+        // and don't require CSRF tokens. Login endpoint excluded as it's used to obtain tokens.
         'api/customer/login',
-        'api/checkout/cart',
-        'api/checkout/onepage/orders',
     ];
 }

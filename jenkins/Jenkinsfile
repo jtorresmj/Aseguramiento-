@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Variables de entorno para las pruebas de API
+        BAGISTO_BASE_URL = "${env.BAGISTO_BASE_URL ?: 'http://localhost:8000'}"
+        BAGISTO_CUSTOMER_EMAIL = credentials('bagisto-test-email')
+        BAGISTO_CUSTOMER_PASSWORD = credentials('bagisto-test-password')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Obteniendo código del repositorio...'
+                checkout scm
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Instalando Newman (Postman CLI)...'
+                sh '''
+                    npm install -g newman newman-reporter-htmlextra
+                    newman --version
+                '''
+            }
+        }
+        
+        stage('Run API Tests') {
+            steps {
+                echo 'Ejecutando pruebas de API con Newman...'
+                sh '''
+                    chmod +x jenkins/run-postman-tests.sh
+                    ./jenkins/run-postman-tests.sh
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Publicando resultados de pruebas...'
+            
+            // Publicar resultados JUnit
+            junit 'test-results/api-test-results.xml'
+            
+            // Publicar reporte HTML
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'test-results',
+                reportFiles: 'api-test-report.html',
+                reportName: 'API Test Report',
+                reportTitles: 'Bagisto API Tests'
+            ])
+        }
+        
+        success {
+            echo '✓ Pipeline completado exitosamente'
+            // Aquí puedes agregar notificaciones (Slack, email, etc.)
+        }
+        
+        failure {
+            echo '✗ Pipeline falló'
+            // Aquí puedes agregar notificaciones de fallo
+        }
+    }
+}
+

@@ -1,0 +1,383 @@
+{
+	"info": {
+		"name": "Bagisto API - Authenticated",
+		"description": "Colección de API de Bagisto con autenticación Sanctum para pruebas automatizadas con Jenkins",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customer_email",
+			"value": "customer@example.com",
+			"type": "string"
+		},
+		{
+			"key": "customer_password",
+			"value": "password123",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Login - Get Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Guardar el token automáticamente",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.collectionVariables.set(\"access_token\", jsonData.data.token);",
+									"        console.log(\"Token guardado exitosamente\");",
+									"    }",
+									"}",
+									"",
+									"// Tests de validación",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('token');",
+									"    pm.expect(jsonData.data).to.have.property('token_type', 'Bearer');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"{{customer_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/customer/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"login"
+							]
+						},
+						"description": "Endpoint para obtener el token de autenticación. Este token se guarda automáticamente en la variable de colección."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains customer data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('customer');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/customer/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"me"
+							]
+						},
+						"description": "Verifica que el token funciona correctamente obteniendo el perfil del cliente autenticado."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de autenticación"
+		},
+		{
+			"name": "2. Shopping Cart",
+			"item": [
+				{
+					"name": "Get Cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains cart data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/checkout/cart",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"checkout",
+								"cart"
+							]
+						},
+						"description": "Obtener el carrito actual del cliente autenticado."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Product to Cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Product added successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.data).to.have.property('items');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": 1,\n    \"quantity\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/checkout/cart",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"checkout",
+								"cart"
+							]
+						},
+						"description": "Agregar un producto al carrito. Requiere autenticación con Sanctum."
+					},
+					"response": []
+				}
+			],
+			"description": "Operaciones del carrito de compras - Requieren autenticación"
+		},
+		{
+			"name": "3. Checkout",
+			"item": [
+				{
+					"name": "Get Checkout Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/checkout/onepage/summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"checkout",
+								"onepage",
+								"summary"
+							]
+						},
+						"description": "Obtener resumen del checkout"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Order created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/checkout/onepage/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"checkout",
+								"onepage",
+								"orders"
+							]
+						},
+						"description": "Crear una orden. Requiere que el carrito esté configurado con dirección, método de envío y pago."
+					},
+					"response": []
+				}
+			],
+			"description": "Proceso de checkout y creación de órdenes - Requieren autenticación"
+		}
+	]
+}
+
