@@ -1,8 +1,8 @@
 <?php
 
+use Webkul\Checkout\Facades\Cart;
 use Webkul\Customer\Models\Customer;
 use Webkul\Faker\Helpers\Product as ProductFaker;
-use Webkul\Checkout\Facades\Cart;
 
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
@@ -21,14 +21,14 @@ it('requires authentication to access checkout summary', function () {
 it('allows authenticated customer to view checkout summary', function () {
     // Arrange - Create customer and token
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
     $token = $customer->createToken('test-token')->plainTextToken;
 
     // Act - Access checkout summary with token
     $response = getJson(route('shop.checkout.onepage.summary'), [
-        'Authorization' => 'Bearer ' . $token,
+        'Authorization' => 'Bearer '.$token,
     ]);
 
     // Assert - Not 401 Unauthorized (authentication works, even if no cart exists)
@@ -103,7 +103,7 @@ it('requires authentication to create order', function () {
 it('allows authenticated customer to store shipping method', function () {
     // Arrange - Create customer with token and cart
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
     $token = $customer->createToken('test-token')->plainTextToken;
@@ -113,7 +113,7 @@ it('allows authenticated customer to store shipping method', function () {
 
     // Create a simple product and add to cart
     $product = (new ProductFaker)->getSimpleProductFactory()->create();
-    
+
     // Get the actual product model from the collection
     $productModel = $product->first();
     Cart::addProduct($productModel, ['quantity' => 1]);
@@ -151,7 +151,7 @@ it('allows authenticated customer to store shipping method', function () {
             'shipping_method' => 'free_free',
         ],
         [
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ]
     );
 
@@ -179,10 +179,10 @@ it('rejects invalid token for checkout operations', function () {
 it('rejects revoked token for checkout operations', function () {
     // Arrange - Create customer and token
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
-    
+
     $tokenObject = $customer->createToken('test-token');
     $token = $tokenObject->plainTextToken;
 
@@ -191,7 +191,7 @@ it('rejects revoked token for checkout operations', function () {
 
     // Act - Try to access with revoked token
     $response = getJson(route('shop.checkout.onepage.summary'), [
-        'Authorization' => 'Bearer ' . $token,
+        'Authorization' => 'Bearer '.$token,
     ]);
 
     // Assert
@@ -204,21 +204,21 @@ it('rejects revoked token for checkout operations', function () {
 it('allows customer to have multiple active tokens', function () {
     // Arrange - Create customer with two tokens
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
-    
+
     $token1 = $customer->createToken('mobile-app')->plainTextToken;
     $token2 = $customer->createToken('web-app')->plainTextToken;
 
     // Act - Access with first token
     $response1 = getJson(route('shop.checkout.onepage.summary'), [
-        'Authorization' => 'Bearer ' . $token1,
+        'Authorization' => 'Bearer '.$token1,
     ]);
 
     // Act - Access with second token
     $response2 = getJson(route('shop.checkout.onepage.summary'), [
-        'Authorization' => 'Bearer ' . $token2,
+        'Authorization' => 'Bearer '.$token2,
     ]);
 
     // Assert - Both tokens should work (not return 401 Unauthorized)
@@ -232,12 +232,12 @@ it('allows customer to have multiple active tokens', function () {
 it('allows same token to be used across all checkout endpoints', function () {
     // Arrange
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
     $token = $customer->createToken('test-token')->plainTextToken;
-    
-    $headers = ['Authorization' => 'Bearer ' . $token];
+
+    $headers = ['Authorization' => 'Bearer '.$token];
 
     // Act & Assert - Summary endpoint
     $response1 = getJson(route('shop.checkout.onepage.summary'), $headers);
@@ -251,7 +251,7 @@ it('allows same token to be used across all checkout endpoints', function () {
     );
     expect($response2->status())->not()->toBe(401);
 
-    // Act & Assert - Payment methods endpoint  
+    // Act & Assert - Payment methods endpoint
     $response3 = postJson(
         route('shop.checkout.onepage.payment_methods.store'),
         ['payment' => ['method' => 'cashondelivery']],
@@ -259,4 +259,3 @@ it('allows same token to be used across all checkout endpoints', function () {
     );
     expect($response3->status())->not()->toBe(401);
 });
-

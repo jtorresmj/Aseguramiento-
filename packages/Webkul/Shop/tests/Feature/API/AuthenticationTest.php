@@ -2,8 +2,8 @@
 
 use Webkul\Customer\Models\Customer;
 
-use function Pest\Laravel\postJson;
 use function Pest\Laravel\getJson;
+use function Pest\Laravel\postJson;
 
 /**
  * Test: Customer can login and receive Sanctum token
@@ -11,9 +11,9 @@ use function Pest\Laravel\getJson;
 it('allows customer to login and returns sanctum token', function () {
     // Arrange - Create a customer
     $customer = Customer::factory()->create([
-        'email'    => 'test@example.com',
-        'password' => bcrypt('password123'),
-        'status'   => 1,
+        'email'       => 'test@example.com',
+        'password'    => bcrypt('password123'),
+        'status'      => 1,
         'is_verified' => 1,
     ]);
 
@@ -41,10 +41,10 @@ it('allows customer to login and returns sanctum token', function () {
 
     // Assert - Token type is Bearer
     expect($response->json('data.token_type'))->toBe('Bearer');
-    
+
     // Assert - Token is not empty
     expect($response->json('data.token'))->not()->toBeEmpty();
-    
+
     // Assert - Customer data matches
     expect($response->json('data.customer.email'))->toBe('test@example.com');
 });
@@ -55,9 +55,9 @@ it('allows customer to login and returns sanctum token', function () {
 it('returns error when login credentials are invalid', function () {
     // Arrange
     Customer::factory()->create([
-        'email'    => 'test@example.com',
-        'password' => bcrypt('password123'),
-        'status'   => 1,
+        'email'       => 'test@example.com',
+        'password'    => bcrypt('password123'),
+        'status'      => 1,
         'is_verified' => 1,
     ]);
 
@@ -78,9 +78,9 @@ it('returns error when login credentials are invalid', function () {
 it('returns error when customer account is not activated', function () {
     // Arrange - Create inactive customer
     Customer::factory()->create([
-        'email'    => 'inactive@example.com',
-        'password' => bcrypt('password123'),
-        'status'   => 0, // Inactive
+        'email'       => 'inactive@example.com',
+        'password'    => bcrypt('password123'),
+        'status'      => 0, // Inactive
         'is_verified' => 1,
     ]);
 
@@ -101,9 +101,9 @@ it('returns error when customer account is not activated', function () {
 it('returns error when customer email is not verified', function () {
     // Arrange - Create unverified customer
     Customer::factory()->create([
-        'email'    => 'unverified@example.com',
-        'password' => bcrypt('password123'),
-        'status'   => 1,
+        'email'       => 'unverified@example.com',
+        'password'    => bcrypt('password123'),
+        'status'      => 1,
         'is_verified' => 0, // Not verified
     ]);
 
@@ -124,9 +124,9 @@ it('returns error when customer email is not verified', function () {
 it('allows authenticated customer to access their profile with token', function () {
     // Arrange - Create and login customer
     $customer = Customer::factory()->create([
-        'email'    => 'test@example.com',
-        'password' => bcrypt('password123'),
-        'status'   => 1,
+        'email'       => 'test@example.com',
+        'password'    => bcrypt('password123'),
+        'status'      => 1,
         'is_verified' => 1,
     ]);
 
@@ -135,7 +135,7 @@ it('allows authenticated customer to access their profile with token', function 
 
     // Act - Access profile with Bearer token
     $response = getJson(route('shop.api.customers.me'), [
-        'Authorization' => 'Bearer ' . $token,
+        'Authorization' => 'Bearer '.$token,
     ]);
 
     // Assert
@@ -177,4 +177,3 @@ it('rejects invalid authentication token', function () {
     // Assert
     $response->assertUnauthorized();
 });
-

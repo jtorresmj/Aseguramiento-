@@ -3,10 +3,10 @@
 use Webkul\Customer\Models\Customer;
 use Webkul\Faker\Helpers\Product as ProductFaker;
 
+use function Pest\Laravel\deleteJson;
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
 use function Pest\Laravel\putJson;
-use function Pest\Laravel\deleteJson;
 
 /**
  * Test: Cart endpoints require authentication
@@ -22,14 +22,14 @@ it('requires authentication to access cart index', function () {
 it('allows authenticated customer to view their cart', function () {
     // Arrange - Create customer and token
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
     $token = $customer->createToken('test-token')->plainTextToken;
 
     // Act - Access cart with token
     $response = getJson(route('shop.api.checkout.cart.index'), [
-        'Authorization' => 'Bearer ' . $token,
+        'Authorization' => 'Bearer '.$token,
     ]);
 
     // Assert
@@ -57,11 +57,11 @@ it('requires authentication to add product to cart', function () {
 it('allows authenticated customer to add product to cart', function () {
     // Arrange - Create customer, token, and product
     $customer = Customer::factory()->create([
-        'status'   => 1,
+        'status'      => 1,
         'is_verified' => 1,
     ]);
     $token = $customer->createToken('test-token')->plainTextToken;
-    
+
     $product = (new ProductFaker)->getSimpleProductFactory()->create();
 
     // Act - Add product with authentication
@@ -72,7 +72,7 @@ it('allows authenticated customer to add product to cart', function () {
             'quantity'   => 1,
         ],
         [
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ]
     );
 
@@ -214,4 +214,3 @@ it('rejects invalid token for cart operations', function () {
     // Assert
     $response->assertUnauthorized();
 });
-
