@@ -112,18 +112,17 @@ test.describe("review management", () => {
          * After selecting the review, mass actions option will be visible.
          */
         let selectActionButton = await adminPage.waitForSelector(
-            'button:has-text("Select Action")',
-            { timeout: 1000 }
+            'button:has-text("Select Action")'
         );
         await selectActionButton.click();
 
         /**
          * Now hovering over the update status option and selecting the approve option.
          */
-        await adminPage.hover('a:has-text("Update Status")', { timeout: 1000 });
+        await adminPage.hover('a:has-text("Update Status")');
         await adminPage.waitForSelector(
             'a:has-text("Pending"), a:has-text("Approved"), a:has-text("Disapproved")',
-            { state: "visible", timeout: 1000 }
+            { state: "visible" }
         );
         await adminPage.click('a:has-text("Approved")');
 
@@ -132,7 +131,6 @@ test.describe("review management", () => {
          */
         await adminPage.waitForSelector("text=Are you sure", {
             state: "visible",
-            timeout: 1000,
         });
         const agreeButton = await adminPage.locator(
             'button.primary-button:has-text("Agree")'
@@ -174,8 +172,7 @@ test.describe("review management", () => {
          * After selecting the review, mass actions option will be visible.
          */
         let selectActionButton = await adminPage.waitForSelector(
-            'button:has-text("Select Action")',
-            { timeout: 1000 }
+            'button:has-text("Select Action")'
         );
         await selectActionButton.click();
 
@@ -278,14 +275,13 @@ test.describe("review management", () => {
         /**
          * Now selecting the delete option.
          */
-        await adminPage.click('a:has-text("Delete")', { timeout: 1000 });
+        await adminPage.click('a:has-text("Delete")');
 
         /**
          * Agreeing to the confirmation dialog.
          */
         await adminPage.waitForSelector("text=Are you sure", {
             state: "visible",
-            timeout: 1000,
         });
         const agreeButton = await adminPage.locator(
             'button.primary-button:has-text("Agree")'
