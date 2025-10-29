@@ -14,5 +14,7 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         // Only exclude specific endpoint(s) needed by external clients
         'api/customer/login',
+        'api/checkout/cart',
+        'api/checkout/onepage/orders',
     ];
 }
