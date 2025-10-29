@@ -43,9 +43,6 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->replaceInGroup('web', BaseEncryptCookies::class, EncryptCookies::class);
         $middleware->replaceInGroup('web', BaseValidateCsrfToken::class, VerifyCsrfToken::class);
-
-        // Also configure CSRF exceptions globally to cover all cases
-        $middleware->validateCsrfTokens(except: ['api/*']);
     })
     ->withSchedule(function (Schedule $schedule) {
         //

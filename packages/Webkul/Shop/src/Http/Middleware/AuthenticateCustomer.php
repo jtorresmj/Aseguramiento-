@@ -15,7 +15,12 @@ class AuthenticateCustomer
      */
     public function handle($request, Closure $next, $guard = 'customer')
     {
-        if (! auth()->guard($guard)->check()) {
+        $sessionGuard = auth()->guard($guard);
+        $tokenGuard = auth('sanctum');
+
+        $user = $sessionGuard->user() ?: $tokenGuard->user();
+
+        if (! $user) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => '',
@@ -24,8 +29,8 @@ class AuthenticateCustomer
 
             return redirect()->route('shop.customer.session.index');
         } else {
-            if (! auth()->guard($guard)->user()->status) {
-                auth()->guard($guard)->logout();
+            if (! $user->status) {
+                $sessionGuard->logout();
 
                 if ($request->expectsJson()) {
                     return response()->json([

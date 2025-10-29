@@ -50,11 +50,30 @@ class CustomerController extends APIController
 
         Event::dispatch('customer.after.login', $customer);
 
+        // Issue a personal access token for stateless API usage via Sanctum
+        $token = $customer->createToken('customer-api')->plainTextToken;
+
         return (new \Illuminate\Http\Resources\Json\JsonResource([
             'data'    => [
-                'customer' => new CustomerResource($customer),
+                'customer'   => new CustomerResource($customer),
+                'token'      => $token,
+                'token_type' => 'Bearer',
             ],
             'message' => 'Logged in successfully.',
+        ]))->response();
+    }
+
+    /**
+     * Get the authenticated customer's profile using Sanctum token.
+     */
+    public function me()
+    {
+        $customer = auth()->user();
+
+        return (new \Illuminate\Http\Resources\Json\JsonResource([
+            'data' => [
+                'customer' => new CustomerResource($customer),
+            ],
         ]))->response();
     }
 }

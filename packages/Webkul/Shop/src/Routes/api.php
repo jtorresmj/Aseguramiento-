@@ -96,6 +96,9 @@ Route::group(['prefix' => 'api'], function () {
      */
     Route::controller(CustomerController::class)->prefix('customer')->group(function () {
         Route::post('login', 'login')->name('shop.api.customers.session.create');
+
+        // Sanctum-protected endpoint to get current customer profile using Bearer token
+        Route::middleware('auth:sanctum')->get('me', 'me')->name('shop.api.customers.me');
     });
 
     Route::group(['middleware' => ['customer'], 'prefix' => 'customer'], function () {
