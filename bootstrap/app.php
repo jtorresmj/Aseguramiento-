@@ -3,7 +3,7 @@
 use App\Http\Middleware\EncryptCookies;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Cookie\Middleware\EncryptCookies as BaseEncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as BaseVerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken as BaseValidateCsrfToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -42,7 +42,10 @@ return Application::configure(basePath: dirname(__DIR__))
          * Add the overridden middleware at the end of the list.
          */
         $middleware->replaceInGroup('web', BaseEncryptCookies::class, EncryptCookies::class);
-        $middleware->replaceInGroup('web', BaseVerifyCsrfToken::class, VerifyCsrfToken::class);
+        $middleware->replaceInGroup('web', BaseValidateCsrfToken::class, VerifyCsrfToken::class);
+
+        // Also configure CSRF exceptions globally to cover all cases
+        $middleware->validateCsrfTokens(except: ['api/*']);
     })
     ->withSchedule(function (Schedule $schedule) {
         //
