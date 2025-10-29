@@ -6,6 +6,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Event;
 use Webkul\Shop\Http\Requests\Customer\LoginRequest;
+use Webkul\Shop\Http\Resources\CustomerResource;
 
 class CustomerController extends APIController
 {
@@ -45,8 +46,15 @@ class CustomerController extends APIController
         /**
          * Event passed to prepare cart after login.
          */
-        Event::dispatch('customer.after.login', auth()->guard()->user());
+        $customer = auth()->guard('customer')->user();
 
-        return response()->json([]);
+        Event::dispatch('customer.after.login', $customer);
+
+        return (new \Illuminate\Http\Resources\Json\JsonResource([
+            'data'    => [
+                'customer' => new CustomerResource($customer),
+            ],
+            'message' => 'Logged in successfully.',
+        ]))->response();
     }
 }
