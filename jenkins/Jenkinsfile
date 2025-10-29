@@ -19,48 +19,89 @@ pipeline {
         stage('Preparar Entorno') {
             steps {
                 echo 'Instalando Newman (Postman CLI) y preparando directorios...'
-                sh '''
-                    npm install -g newman newman-reporter-htmlextra
-                    newman --version
-                    mkdir -p test-results
-                '''
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            npm install -g newman newman-reporter-htmlextra
+                            newman --version
+                            mkdir -p test-results
+                        '''
+                    } else {
+                        bat '''
+                            npm install -g newman newman-reporter-htmlextra
+                            newman --version
+                            if not exist test-results mkdir test-results
+                        '''
+                    }
+                }
             }
         }
 
         stage('Run API Tests') {
             steps {
                 echo 'Ejecutando pruebas funcionales de API con Newman...'
-                sh '''
-                    chmod +x jenkins/run-postman-tests.sh
-                    ./jenkins/run-postman-tests.sh
-                '''
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            chmod +x jenkins/run-postman-tests.sh
+                            ./jenkins/run-postman-tests.sh
+                        '''
+                    } else {
+                        bat '''
+                            newman run postman/Bagisto_API_Collection.postman_collection.json ^
+                            -e postman/Bagisto_Environment.postman_environment.json ^
+                            --env-var "base_url=%BAGISTO_BASE_URL%" ^
+                            --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
+                            --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
+                            -r cli,htmlextra,junit ^
+                            --reporter-htmlextra-export test-results/api-test-report.html ^
+                            --reporter-junit-export test-results/api-test-results.xml ^
+                            --color on ^
+                            --bail ^
+                            --timeout-request 10000
+                        '''
+                    }
+                }
             }
         }
 
         stage('Prueba de Estrés') {
             steps {
-                echo '=== Ejecutando prueba de estrés de la API ==='
-                bat '''
-            if not exist test-results mkdir test-results
-
-            npm list -g newman || npm install -g newman
-            npm list -g newman-reporter-htmlextra || npm install -g newman-reporter-htmlextra
-
-            newman run "postman\\Bagisto_API_Collection.postman_collection.json" ^
-                -e "postman\\Bagisto_Environment.postman_environment.json" ^
-                --env-var "base_url=%BAGISTO_BASE_URL%" ^
-                --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
-                --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
-                --iteration-count 100 ^
-                --delay-request 100 ^
-                -r cli,junit,htmlextra ^
-                --reporter-junit-export "test-results\\stress-test-results.xml" ^
-                --reporter-htmlextra-export "test-results\\stress-test-report.html" ^
-                --color on ^
-                --timeout-request 10000
-
-            echo === Prueba de estrés completada ===
-        '''
+                echo 'Ejecutando prueba de estrés de la API...'
+                script {
+                    // Detectar sistema operativo y ejecutar comando apropiado
+                    if (isUnix()) {
+                        sh '''
+                            newman run postman/Bagisto_API_Collection.postman_collection.json \
+                            -e postman/Bagisto_Environment.postman_environment.json \
+                            --env-var "base_url=${BAGISTO_BASE_URL}" \
+                            --env-var "customer_email=${BAGISTO_CUSTOMER_EMAIL}" \
+                            --env-var "customer_password=${BAGISTO_CUSTOMER_PASSWORD}" \
+                            --iteration-count 100 \
+                            --delay-request 100 \
+                            -r cli,junit,htmlextra \
+                            --reporter-junit-export test-results/stress-test-results.xml \
+                            --reporter-htmlextra-export test-results/stress-test-report.html \
+                            --color on \
+                            --timeout-request 10000
+                        '''
+                    } else {
+                        bat '''
+                            newman run postman/Bagisto_API_Collection.postman_collection.json ^
+                            -e postman/Bagisto_Environment.postman_environment.json ^
+                            --env-var "base_url=%BAGISTO_BASE_URL%" ^
+                            --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
+                            --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
+                            --iteration-count 100 ^
+                            --delay-request 100 ^
+                            -r cli,junit,htmlextra ^
+                            --reporter-junit-export test-results/stress-test-results.xml ^
+                            --reporter-htmlextra-export test-results/stress-test-report.html ^
+                            --color on ^
+                            --timeout-request 10000
+                        '''
+                    }
+                }
             }
         }
     }
@@ -70,42 +111,52 @@ pipeline {
             echo 'Publicando resultados de pruebas...'
 
             // Publicar resultados JUnit (pruebas funcionales y de estrés)
-            junit 'test-results/*.xml'
+            junit(allowEmptyResults: true, testResults: 'test-results/*.xml')
 
             // Publicar reporte HTML de pruebas funcionales
             publishHTML([
-                allowMissing: false,
+                allowMissing: true,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
                 reportDir: 'test-results',
                 reportFiles: 'api-test-report.html',
                 reportName: 'API Functional Tests',
-                reportTitles: 'Bagisto API Tests'
+                reportTitles: 'Bagisto API Functional Tests'
             ])
 
             // Publicar reporte HTML de pruebas de estrés
             publishHTML([
-                allowMissing: false,
+                allowMissing: true,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
                 reportDir: 'test-results',
                 reportFiles: 'stress-test-report.html',
-                reportName: 'API Stress Test Report',
+                reportName: 'API Stress Tests',
                 reportTitles: 'Bagisto API Stress Tests'
             ])
         }
 
         success {
+            echo '========================================='
             echo '✓ Pipeline completado exitosamente'
-            echo '  - Pruebas funcionales: PASADAS'
-            echo '  - Pruebas de estrés (100 iteraciones): COMPLETADAS'
-        // Aquí puedes agregar notificaciones (Slack, email, etc.)
+            echo '========================================='
+            echo '  ✓ Pruebas funcionales: PASADAS'
+            echo '  ✓ Pruebas de estrés (100 iteraciones): COMPLETADAS'
+            echo ''
+            echo 'Ver reportes en Jenkins:'
+            echo '  - API Functional Tests'
+            echo '  - API Stress Tests'
+            // Aquí puedes agregar notificaciones (Slack, email, etc.)
         }
 
         failure {
+            echo '========================================='
             echo '✗ Pipeline falló'
-            echo 'Revisa los reportes HTML para más detalles'
-        // Aquí puedes agregar notificaciones de fallo
+            echo '========================================='
+            echo 'Revisa los reportes HTML para más detalles:'
+            echo '  - Console Output en Jenkins'
+            echo '  - API Test Reports'
+            // Aquí puedes agregar notificaciones de fallo
         }
     }
 }
