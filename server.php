@@ -6,12 +6,11 @@
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/');
 
-$publicPath = __DIR__ . '/public';
+$publicPath = __DIR__.'/public';
 
 // If the requested URI is a real file under public/, let the server serve it.
-if ($uri !== '/' && file_exists($publicPath . $uri) && is_file($publicPath . $uri)) {
+if ($uri !== '/' && file_exists($publicPath.$uri) && is_file($publicPath.$uri)) {
     return false;
 }
 
-require_once $publicPath . '/index.php';
-
+require_once $publicPath.'/index.php';
