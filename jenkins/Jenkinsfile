@@ -15,6 +15,24 @@ pipeline {
                 checkout scm
             }
         }
+        
+        stage('Verificar Archivos') {
+            steps {
+                echo 'Verificando que todos los archivos necesarios estén presentes...'
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            chmod +x jenkins/verify-files.sh
+                            ./jenkins/verify-files.sh
+                        '''
+                    } else {
+                        bat '''
+                            jenkins\\verify-files.bat
+                        '''
+                    }
+                }
+            }
+        }
 
         stage('Preparar Entorno') {
             steps {
@@ -22,15 +40,37 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh '''
+                            echo "=== Verificando directorio de trabajo ==="
+                            pwd
+                            ls -la
+                            
+                            echo "=== Instalando Newman ==="
                             npm install -g newman newman-reporter-htmlextra
                             newman --version
+                            
+                            echo "=== Creando directorios ==="
                             mkdir -p test-results
+                            
+                            echo "=== Verificando archivos de Postman ==="
+                            ls -la postman/ || echo "Directorio postman no encontrado"
+                            ls -la postman/*.json || echo "Archivos JSON no encontrados"
                         '''
                     } else {
                         bat '''
+                            echo === Verificando directorio de trabajo ===
+                            cd
+                            dir
+                            
+                            echo === Instalando Newman ===
                             npm install -g newman newman-reporter-htmlextra
                             newman --version
+                            
+                            echo === Creando directorios ===
                             if not exist test-results mkdir test-results
+                            
+                            echo === Verificando archivos de Postman ===
+                            dir postman\\ || echo Directorio postman no encontrado
+                            dir postman\\*.json || echo Archivos JSON no encontrados
                         '''
                     }
                 }
@@ -43,22 +83,48 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh '''
-                            chmod +x jenkins/run-postman-tests.sh
-                            ./jenkins/run-postman-tests.sh
+                            echo "=== Verificando archivos antes de ejecutar ==="
+                            if [ -f "jenkins/run-postman-tests.sh" ]; then
+                                echo "Script encontrado, ejecutando..."
+                                chmod +x jenkins/run-postman-tests.sh
+                                ./jenkins/run-postman-tests.sh
+                            else
+                                echo "Script no encontrado, ejecutando Newman directamente..."
+                                newman run postman/Bagisto_API_Collection.postman_collection.json \
+                                -e postman/Bagisto_Environment.postman_environment.json \
+                                --env-var "base_url=${BAGISTO_BASE_URL}" \
+                                --env-var "customer_email=${BAGISTO_CUSTOMER_EMAIL}" \
+                                --env-var "customer_password=${BAGISTO_CUSTOMER_PASSWORD}" \
+                                -r cli,htmlextra,junit \
+                                --reporter-htmlextra-export test-results/api-test-report.html \
+                                --reporter-junit-export test-results/api-test-results.xml \
+                                --color on \
+                                --bail \
+                                --timeout-request 10000
+                            fi
                         '''
                     } else {
                         bat '''
-                            newman run postman/Bagisto_API_Collection.postman_collection.json ^
-                            -e postman/Bagisto_Environment.postman_environment.json ^
-                            --env-var "base_url=%BAGISTO_BASE_URL%" ^
-                            --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
-                            --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
-                            -r cli,htmlextra,junit ^
-                            --reporter-htmlextra-export test-results/api-test-report.html ^
-                            --reporter-junit-export test-results/api-test-results.xml ^
-                            --color on ^
-                            --bail ^
-                            --timeout-request 10000
+                            echo === Verificando archivos antes de ejecutar ===
+                            if exist "postman\\Bagisto_API_Collection.postman_collection.json" (
+                                echo Archivos encontrados, ejecutando Newman...
+                                newman run postman\\Bagisto_API_Collection.postman_collection.json ^
+                                -e postman\\Bagisto_Environment.postman_environment.json ^
+                                --env-var "base_url=%BAGISTO_BASE_URL%" ^
+                                --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
+                                --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
+                                -r cli,htmlextra,junit ^
+                                --reporter-htmlextra-export test-results\\api-test-report.html ^
+                                --reporter-junit-export test-results\\api-test-results.xml ^
+                                --color on ^
+                                --bail ^
+                                --timeout-request 10000
+                            ) else (
+                                echo ERROR: Archivos de Postman no encontrados
+                                echo Contenido del directorio:
+                                dir postman\\
+                                exit 1
+                            )
                         '''
                     }
                 }
@@ -69,36 +135,47 @@ pipeline {
             steps {
                 echo 'Ejecutando prueba de estrés de la API...'
                 script {
-                    // Detectar sistema operativo y ejecutar comando apropiado
                     if (isUnix()) {
                         sh '''
-                            newman run postman/Bagisto_API_Collection.postman_collection.json \
-                            -e postman/Bagisto_Environment.postman_environment.json \
-                            --env-var "base_url=${BAGISTO_BASE_URL}" \
-                            --env-var "customer_email=${BAGISTO_CUSTOMER_EMAIL}" \
-                            --env-var "customer_password=${BAGISTO_CUSTOMER_PASSWORD}" \
-                            --iteration-count 100 \
-                            --delay-request 100 \
-                            -r cli,junit,htmlextra \
-                            --reporter-junit-export test-results/stress-test-results.xml \
-                            --reporter-htmlextra-export test-results/stress-test-report.html \
-                            --color on \
-                            --timeout-request 10000
+                            echo "=== Iniciando prueba de estrés ==="
+                            if [ -f "postman/Bagisto_API_Collection.postman_collection.json" ]; then
+                                newman run postman/Bagisto_API_Collection.postman_collection.json \
+                                -e postman/Bagisto_Environment.postman_environment.json \
+                                --env-var "base_url=${BAGISTO_BASE_URL}" \
+                                --env-var "customer_email=${BAGISTO_CUSTOMER_EMAIL}" \
+                                --env-var "customer_password=${BAGISTO_CUSTOMER_PASSWORD}" \
+                                --iteration-count 100 \
+                                --delay-request 100 \
+                                -r cli,junit,htmlextra \
+                                --reporter-junit-export test-results/stress-test-results.xml \
+                                --reporter-htmlextra-export test-results/stress-test-report.html \
+                                --color on \
+                                --timeout-request 10000
+                            else
+                                echo "ERROR: Archivo de colección no encontrado"
+                                exit 1
+                            fi
                         '''
                     } else {
                         bat '''
-                            newman run postman/Bagisto_API_Collection.postman_collection.json ^
-                            -e postman/Bagisto_Environment.postman_environment.json ^
-                            --env-var "base_url=%BAGISTO_BASE_URL%" ^
-                            --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
-                            --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
-                            --iteration-count 100 ^
-                            --delay-request 100 ^
-                            -r cli,junit,htmlextra ^
-                            --reporter-junit-export test-results/stress-test-results.xml ^
-                            --reporter-htmlextra-export test-results/stress-test-report.html ^
-                            --color on ^
-                            --timeout-request 10000
+                            echo === Iniciando prueba de estrés ===
+                            if exist "postman\\Bagisto_API_Collection.postman_collection.json" (
+                                newman run postman\\Bagisto_API_Collection.postman_collection.json ^
+                                -e postman\\Bagisto_Environment.postman_environment.json ^
+                                --env-var "base_url=%BAGISTO_BASE_URL%" ^
+                                --env-var "customer_email=%BAGISTO_CUSTOMER_EMAIL%" ^
+                                --env-var "customer_password=%BAGISTO_CUSTOMER_PASSWORD%" ^
+                                --iteration-count 100 ^
+                                --delay-request 100 ^
+                                -r cli,junit,htmlextra ^
+                                --reporter-junit-export test-results\\stress-test-results.xml ^
+                                --reporter-htmlextra-export test-results\\stress-test-report.html ^
+                                --color on ^
+                                --timeout-request 10000
+                            ) else (
+                                echo ERROR: Archivo de colección no encontrado
+                                exit 1
+                            )
                         '''
                     }
                 }
